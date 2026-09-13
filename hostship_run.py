@@ -94,19 +94,29 @@ def process_renewal(sb):
                 sb.save_screenshot("hostship_limit.png")
                 send_tg_notification(msg, "hostship_limit.png")
             else:
-                print(f"🖱️ 按钮显示 '{btn_text}', 尝试点击续期！")
+                print(f"🖱️ 按钮显示 '{btn_text}', 尝试点击第一次续期按钮！")
                 sb.click(renew_button_selector)
-                time.sleep(5)
                 
+                # 等待弹窗出现
+                time.sleep(3) 
+                
+                # 尝试点击二次确认弹窗里的 "Renew now"
                 try:
-                    if sb.is_element_visible("button:contains('Confirm')") or sb.is_element_visible("button.btn-primary"):
-                         sb.click("button:contains('Confirm'), button.btn-primary")
-                         time.sleep(3)
-                except:
-                    pass
+                    print("👀 正在寻找弹窗中的 'Renew now' 确认按钮...")
+                    # 增加了 'Renew now' 选择器
+                    confirm_selector = "button:contains('Renew now'), button:contains('Confirm'), button.btn-primary"
+                    
+                    if sb.is_element_visible(confirm_selector):
+                        print("✅ 找到弹窗确认按钮，执行点击！")
+                        sb.click(confirm_selector)
+                        time.sleep(3)
+                    else:
+                        print("⚠️ 没有发现二次确认弹窗，可能面板改变了逻辑。")
+                except Exception as e:
+                    print(f"点击二次确认按钮时发生小错误: {e}")
                 
                 sb.save_screenshot("hostship_renew_success.png")
-                msg = f"🎉 <b>Host-Ship 续期成功</b>\n已成功完成续期操作！\n原剩余时间: {days_left}"
+                msg = f"🎉 <b>Host-Ship 续期成功</b>\n已成功完成二次确认续期操作！\n原剩余时间: {days_left}"
                 print(msg)
                 send_tg_notification(msg, "hostship_renew_success.png")
         else:
@@ -132,7 +142,6 @@ def run():
         chromium_arg="--disable-blink-features=AutomationControlled",
     )
     
-    # 如果你在 Action 开启了代理，请取消下面这行的注释
     # sb_kwargs["proxy"] = "socks5://127.0.0.1:1080"
 
     try:
@@ -148,11 +157,9 @@ def run():
                     print("📝 正在输入账号密码...")
                     sb.wait_for_element_visible(user_selector, timeout=10)
                     
-                    # 清空并输入邮箱
                     sb.clear(user_selector)
                     sb.type(user_selector, EMAIL)
                     
-                    # 使用更精确的密码框选择器
                     pwd_selector = "input[name='password'], input[type='password']"
                     sb.wait_for_element_visible(pwd_selector, timeout=5)
                     sb.clear(pwd_selector)
@@ -167,7 +174,6 @@ def run():
                         print("未找到 Sign In 按钮，尝试回车提交...")
                         sb.type(pwd_selector, "\n")
                     
-                    # 提交后等待网页响应跳转
                     time.sleep(10) 
 
                 except Exception as e:
@@ -180,7 +186,6 @@ def run():
             time.sleep(3)
             current_url = sb.get_current_url()
             
-            # 如果提交后还在登录页，说明密码错误或被禁止访问
             if "login" in current_url or sb.is_element_visible(user_selector):
                 print("❌ 登录失败！账号密码错误或被系统阻断。")
                 sb.save_screenshot("hostship_login_failed.png")
